@@ -88,19 +88,19 @@ def identify_imbanlance_class_to_remove():
 
 def identify_imbanlance_class_to_undersample():
     dict_imbalnace = {
-        "ClientSizeCategory": [["Large",0.7]],
+        "ClientSizeCategory": [["Large",0.5]],
         "TenderType": [["RFP",0.4]],
         "ProjectScope": [["Residential building",0.55]],
-        "Client": [["ClientB",0.7],["ClientL",0.7]],
+        "Client": [["ClientB",0.25],["ClientL",0.25]],
         }
     return dict_imbalnace
 
 def identify_imbanlance_class_to_oversample():
     dict_imbalnace = {
-        "ClientSizeCategory": [["SME",5],["Small",2]],
+        "ClientSizeCategory": [["SME",20],["Small",2]],
         "LeadSource": [["referral",2]],
         "ProjectScope": [["Carpark",2],["Shopping mall",2]],
-        "Client": [["ClientM",2],["ClientE",2],["ClientF",2],["ClientG",2],["ClientO",2],["ClientD",2],["ClientC",2],["ClientJ",2]],
+        "Client": [["ClientM",3],["ClientE",3],["ClientF",3],["ClientG",3],["ClientO",3],["ClientD",3],["ClientC",3],["ClientJ",3]],
         "TenderType": [["PIN",2],["Direct award",2],["Framework",2]],
         }
     return dict_imbalnace
@@ -153,7 +153,7 @@ def encoding_categorical_columns(df,columns = prepare_categorical_columns()):
 
 
 #For Column dropping and NaN removal###########################################################################
-def drop_na_and_columns(df, drop_columns = prepare_columns_to_drop()):
+def drop_columns(df, drop_columns = prepare_columns_to_drop()):
     for col in drop_columns:
         if col in df.columns:
             df = df.drop(columns=[col])
@@ -247,11 +247,7 @@ raw_df = pd.read_csv('data/synthetic_arup_bids_v20_full_shuffled.csv')
 df = filter_successful_bids(raw_df)
 df = normalize_unique_values(df)
 df = to_numeric(df)
-
-df = drop_na_and_columns(df)
-
-print (set(df['IsGovernmentProject']))
-
+df = drop_columns(df)
 
 col_names = ['ProjectScope','ClientSizeCategory','Location','Client','LeadSource','TenderType','BidTeamLead']
 [count_plot(df, col_name,filename = 'Before adjustment' + col_name + '.png') for col_name in col_names]
@@ -264,9 +260,20 @@ df,_cat_encoder = encoding_categorical_columns(df)
 #Describe data + Visualizations + Correlation heatmap
 ############################################################################################################
 describe_data(df)
-heatmap_correlation(df)
-pairplot(df)
+print (df.shape)
+# heatmap_correlation(df)
+# pairplot(df)
+
+plt.clf()
+df['LogBiddingPrice'] = np.log1p(df['BiddingPrice'])
+df['LogTotalGFA'] = np.log1p(df['TotalGFA'])
+
+
+sns.boxplot(x='Client', y='LogTotalGFA', data=df)
+plt.title('Boxplot')
+plt.show()
+
+
 print ("END")
-
-
+df.to_pickle("pickle file/Step1_cleaned_df.pkl")
 
