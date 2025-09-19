@@ -14,36 +14,63 @@ def prepare_successful_bids_list():
 
 def prepare_string_checking_list():
     columns_to_check = [
-    "Location",
-    "ProjectScope",
-    "Client",
-    "ClientSizeCategory",
-    "LeadSource",
-    "TenderType",
-    "BidTeamLead",
+        "Location",
+        "ProjectScope",
+        "Client",
+        "ClientSizeCategory",
+        "LeadSource",
+        "TenderType",
+        "BidTeamLead",
     ]
 
-    valid_locations = ["Central & Western", "Wan Chai","Eastern","Southern","Yau Tsim Mong","Kowloon City","Wong Tai Sin","Sham Shui Po","Kowloon Bay (Kwun Tong)","Sai Kung","Sha Tin","Tai Po","North","Tuen Mun","Yuen Long","Tsuen Wan","Kwai Tsing (Kwai Chung)","Islands"]
-    valid_project_scope = ["Residential building","Hospital","Shopping mall","Carpark","Power station","Bridge","Other civil","Commercial"]
-    valid_clients = [f"Client{chr(ord('A') + i)}" for i in range(15)]
-    valid_client_size_cat = ["SME", "Large", "Small"]
-    valid_lead_sources = ["existing client","referral","public tender"] 
-    valid_tender_type = ["RFP", "RFQ", "PIN", "Direct award", "Framework"]
-    valid_bid_team_lead = [f"Lead{chr(ord('A') + i)}" for i in range(10)]
-    arr_valid_values = [valid_locations, valid_project_scope, valid_clients, valid_client_size_cat, valid_lead_sources, valid_tender_type, valid_bid_team_lead]
-    
-    column_valid_values_map = {
-    "Location": valid_locations,
-    "ProjectScope": valid_project_scope,
-    "Client": valid_clients,
-    "ClientSizeCategory": valid_client_size_cat,
-    "LeadSource": valid_lead_sources,
-    "TenderType": valid_tender_type,
-    "BidTeamLead": valid_bid_team_lead
+    valid_values_dict = {
+        "Location": [
+            "Central & Western", "Wan Chai", "Eastern", "Southern", "Yau Tsim Mong",
+            "Kowloon City", "Wong Tai Sin", "Sham Shui Po", "Kowloon Bay (Kwun Tong)",
+            "Sai Kung", "Sha Tin", "Tai Po", "North", "Tuen Mun", "Yuen Long",
+            "Tsuen Wan", "Kwai Tsing (Kwai Chung)", "Islands"
+        ],
+        "ProjectScope": [
+            "Residential building", "Hospital", "Shopping mall", "Carpark",
+            "Power station", "Bridge", "Other civil", "Commercial"
+        ],
+        "Client": [f"Client{chr(ord('A') + i)}" for i in range(15)],
+        "ClientSizeCategory": ["SME", "Large", "Small","Government"],
+        "LeadSource": ["existing client", "referral", "public tender"],
+        "TenderType": ["RFP", "RFQ", "PIN", "Direct award", "Framework"],
+        "BidTeamLead": [f"Leader{chr(ord('A') + i)}" for i in range(10)]
     }
 
+    manual_synonym_mapping = {
+        "Location": {
+            "central & western": "cw",
+            "wan chai": "wc",
+            "eastern": "",
+            "southern": "",
+            "yau tsim mong": "ytm",
+            "kowloon city": "kc",
+            "wong tai sin": "wts",
+            "sham shui po": "ssp",
+            "kowloon bay (kwun tong)": "kb",
+            "sai kung": "sk",
+            "sha tin": "st",
+            "tai po": "tp",
+            "north": "",
+            "tuen mun": "tm",
+            "yuen long": "yl",
+            "tsuen wan": "tw",
+            "kwai tsing (kwai chung)": "kt",
+            "islands": ""
+        },
+        "ProjectScope": {},
+        "Client": {},
+        "ClientSizeCategory": {},
+        "LeadSource": {},
+        "TenderType": {},
+        "BidTeamLead": {}
+    }
 
-    return columns_to_check,arr_valid_values,column_valid_values_map
+    return columns_to_check, valid_values_dict, manual_synonym_mapping
 
 def prepare_numerical_columns():
     numerical_columns = ['BiddingPrice', 
@@ -51,12 +78,10 @@ def prepare_numerical_columns():
                      'AreaPerFloor',
                      'NumberOfStoreys',
                      'ComplexityIndex',
-                     'ClientSizeNumeric',
                      'TeamTotal',
                      'TeamJuniors',
                      'TeamSeniors',
                      'TeamAssociates',
-                     'TeamAvgExperienceYears',
                      'TenderIssuedMonth',
                      'TenderIssuedYear',
                      'TrueNrOfCompetitors',
@@ -72,7 +97,6 @@ def prepare_categorical_columns():
         "LeadSource",
         "TenderType",
         "BidTeamLead",
-        'IsGovernmentProject'
     ]
     return categorical_columns
 
@@ -83,15 +107,16 @@ def prepare_columns_to_drop():
 def identify_imbanlance_class_to_remove():
     dict_imbalnace = {
         "ProjectScope": ["Other civil","Bridge","Power station","Hospital"],
+        "ClientSizeCategory": ["Government"],
         }
     return dict_imbalnace
 
 def identify_imbanlance_class_to_undersample():
     dict_imbalnace = {
-        "ClientSizeCategory": [["Large",0.5]],
+        "ClientSizeCategory": [["Large",0.2]],
         "TenderType": [["RFP",0.4]],
         "ProjectScope": [["Residential building",0.55]],
-        "Client": [["ClientB",0.25],["ClientL",0.25]],
+        "Client": [["ClientB",0.15],["ClientL",0.15]],
         }
     return dict_imbalnace
 
@@ -100,7 +125,7 @@ def identify_imbanlance_class_to_oversample():
         "ClientSizeCategory": [["SME",20],["Small",2]],
         "LeadSource": [["referral",2]],
         "ProjectScope": [["Carpark",2],["Shopping mall",2]],
-        "Client": [["ClientM",3],["ClientE",3],["ClientF",3],["ClientG",3],["ClientO",3],["ClientD",3],["ClientC",3],["ClientJ",3]],
+        "Client": [["ClientM",6],["ClientE",6],["ClientF",6],["ClientG",6],["ClientO",6],["ClientD",6],["ClientC",6],["ClientJ",6]],
         "TenderType": [["PIN",2],["Direct award",2],["Framework",2]],
         }
     return dict_imbalnace
@@ -116,24 +141,41 @@ def filter_successful_bids(df,string_list = prepare_successful_bids_list()):
 
 #For String Columns Checking and normalization###########################################################################
 def normalize_unique_values(df, check_list=prepare_string_checking_list()):
-    columns_to_check, arr_valid_values, string_check_mapping = check_list
+    
+    rows_before_normalize = df.shape[0]
+    
+    columns_to_check, valid_values_dict, synonym_mapping = check_list
 
     for i, col in enumerate(columns_to_check):
-        unique_values = set(df[col])
-        print(f'"{col}" unique nr in dataset = {len(unique_values)} vs expected nr = {len(arr_valid_values[i])}')
-        if len(unique_values) != len(arr_valid_values[i]):
-            valid_list = string_check_mapping[col]
-            df[col] = df[col].apply(lambda x: normalize_column(x, valid_list))
-
+        valid_list = valid_values_dict[col]
+        mapping_dict = synonym_mapping.get(col, {})
+        df[col] = df[col].apply(lambda x: normalize_column(x, valid_list, mapping_dict))
+    
+    # Drop rows with any NaN values after normalization
+    df = df.dropna(subset=columns_to_check).reset_index(drop=True) 
+    rows_after_normalize = df.shape[0]
+    print (f'Rows dropped after normalisation: {rows_before_normalize - rows_after_normalize} rows')
+    
     return df
 
-def normalize_column(name,valid_list):
+def normalize_column(name, valid_list, mapping_dict):
     name = str(name).strip().lower()
-    match = difflib.get_close_matches(name, [d.lower() for d in valid_list], n=1, cutoff=0.6)
-    if match:
-        return next(d for d in valid_list if d.lower() == match[0])
-    return None
+    if name in [d.lower() for d in valid_list]:
+        # print ('100% match found')
+        return next(d for d in valid_list if d.lower() == name)
+    else:
+        for standard_name, variations in mapping_dict.items():
+            if name in variations:
+                print (f'Synonyms is found: -{name}- mapped to -{standard_name}-')
+                return standard_name.lower()
 
+    match = difflib.get_close_matches(name, [v.lower() for v in valid_list], n=1, cutoff=0.75)
+
+    if match:
+        print (f'Close match found: -{name}- mapped to -{match[0]}-')
+        return next(d for d in valid_list if d.lower() == match[0]) 
+    else:
+        return None
 
 #For Numeric conversion###########################################################################
 def to_numeric(df, columns = prepare_numerical_columns()):
@@ -201,6 +243,25 @@ def adjust_imbalance(df):
 
 
 #Functions for data visualization###########################################################################
+def boxplot(df,numerical_cols, by_col='Client',nr_cols = 4,file_name = 'img/Boxplots.png'):
+    plt.clf()
+    n_rows = -(-len(numerical_cols) // nr_cols)
+    fig, axes = plt.subplots(n_rows, nr_cols, figsize=(14, 5 * n_rows))
+    axes = axes.flatten()
+
+    for i, col in enumerate(numerical_cols):
+        sns.boxplot(x= by_col, y=col, data=df, ax=axes[i])
+        axes[i].set_title(f'{col} vs {by_col}')
+        axes[i].tick_params(axis='x', rotation=90)
+
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+        
+    plt.subplots_adjust(hspace=1, wspace=2.5)
+    plt.tight_layout()
+    plt.savefig(file_name, facecolor='white', bbox_inches='tight')
+    # plt.show()
+
 def pairplot(df,filename="Pairplot.png"):
     plt.clf()
     graph = sns.pairplot(df, 
@@ -240,8 +301,8 @@ def describe_data(df):
     print(df.info())
     df.describe(include='all')
 
-
-#Main code starts here########################################################################
+#Data Cleaning
+########################################################################
 raw_df = pd.read_csv('data/synthetic_arup_bids_v20_full_shuffled.csv')
 
 df = filter_successful_bids(raw_df)
@@ -255,24 +316,47 @@ col_names = ['ProjectScope','ClientSizeCategory','Location','Client','LeadSource
 df = adjust_imbalance(df)
 [count_plot(df,col_name,filename = 'After adjustment' + col_name + '.png') for col_name in col_names]
 
-df,_cat_encoder = encoding_categorical_columns(df)
+
+
+#Box Plot to identify outliners + Log transformation of numerical columns
+############################################################################################################
+numerical_cols = prepare_numerical_columns()
+boxplot(df,numerical_cols, by_col='Client',nr_cols = 4,file_name = f'img/Boxplots_For Study.png')
+
+log_cols = ['BiddingPrice', 'TotalGFA','AreaPerFloor','NumberOfStoreys']
+for col in log_cols:
+    df[f'Log{col}'] = np.log1p(df[col])
+    if col in numerical_cols:
+        idx = numerical_cols.index(col)
+        numerical_cols[idx] = f'Log{col}'
+        
+        #Replace the columns in dataframe by Log version but keep the original column position
+        col_index = df.columns.get_loc(col)
+        df.drop(columns=col, inplace=True)
+        df.insert(col_index, col, df['Log' + col])
+        df.drop(columns=col, inplace=True)
+
+boxplot(df,numerical_cols, by_col='Client',nr_cols = 4,file_name = f'img/Boxplots_After Log.png')
+
+#Remove outliners based on observation from box plots
+############################################################################################################
+before_rows = df.shape[0]
+df = df[df['LogBiddingPrice'] >= 14].reset_index(drop=True)
+df = df[df['LogTotalGFA'] >= 8].reset_index(drop=True)
+df = df[df['LogAreaPerFloor'] >= 7].reset_index(drop=True)
+df = df[df['TenderIssuedMonth'] <= 11].reset_index(drop=True)
+df = df[df['TrueNrOfCompetitors'] < 4].reset_index(drop=True)
+after_rows = df.shape[0]
+print (f'{before_rows - after_rows} rows removed after removing outliers')
+print (df.shape)
+
 
 #Describe data + Visualizations + Correlation heatmap
 ############################################################################################################
+df,_cat_encoder = encoding_categorical_columns(df)
 describe_data(df)
-print (df.shape)
-# heatmap_correlation(df)
+heatmap_correlation(df)
 # pairplot(df)
-
-plt.clf()
-df['LogBiddingPrice'] = np.log1p(df['BiddingPrice'])
-df['LogTotalGFA'] = np.log1p(df['TotalGFA'])
-
-
-sns.boxplot(x='Client', y='LogTotalGFA', data=df)
-plt.title('Boxplot')
-plt.show()
-
 
 print ("END")
 df.to_pickle("pickle file/Step1_cleaned_df.pkl")
